@@ -1,0 +1,25 @@
+// layer (spritesheet) index of each box color
+const BOX_COLOR_ORANGE = 6
+const BOX_COLOR_RED = 7
+const BOX_COLOR_BLUE = 8
+const BOX_COLOR_GREEN = 9
+const BOX_COLOR_GREY = 10
+// layer (spritesheet) index of each target color
+const TARGET_COLOR_ORANGE = 25
+const TARGET_COLOR_RED = 38
+const TARGET_COLOR_BLUE = 51
+const TARGET_COLOR_GREEN = 64
+const TARGET_COLOR_GREY = 77
+
+export {
+  BOX_COLOR_ORANGE,
+  BOX_COLOR_RED,
+  BOX_COLOR_BLUE,
+  BOX_COLOR_GREEN,
+  BOX_COLOR_GREY,
+  TARGET_COLOR_ORANGE,
+  TARGET_COLOR_RED,
+  TARGET_COLOR_BLUE,
+  TARGET_COLOR_GREEN,
+  TARGET_COLOR_GREY,
+}

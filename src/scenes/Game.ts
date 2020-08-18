@@ -1,17 +1,21 @@
 import Phaser from 'phaser'
+import * as Colors from '../constants/Colors'
 
 export default class Game extends Phaser.Scene {
   // variable & method definitions
   private player?: Phaser.GameObjects.Sprite
-  private boxes: Phaser.GameObjects.Sprite[] = []
+  private blueBoxes: Phaser.GameObjects.Sprite[] = []
   private layer?: Phaser.Tilemaps.StaticTilemapLayer
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
+  private targetsCoveredByColor: { [key: number]: number } = {}
 
+  // yup, the constructor
   constructor() {
+    // pass in its reference key
     super('game')
   }
 
-  // method run before the game has loaded
+  // a Phaser method which is run before the game has loaded
   preload() {
     // load the single spritesheet at run-time
     this.load.spritesheet('tiles', 'assets/sokoban_tilesheet.png', {
@@ -21,7 +25,7 @@ export default class Game extends Phaser.Scene {
     })
   }
 
-  // method run once after the game has loaded, but before the game starts
+  // a Phaser method which is run once after the game has loaded, but before the game starts
   create() {
     // define keyboard input
     this.cursors = this.input.keyboard.createCursorKeys()
@@ -47,7 +51,7 @@ export default class Game extends Phaser.Scene {
     })
     const tiles = map.addTilesetImage('tiles')
 
-    // this.layer is now the spritesheet that has been divided into an array
+    // this.layer is now the spritesheet which has been divided into an array
     // each 64x64 tile has an index in that array
     // it is a single array, not 2d
     this.layer = map.createStaticLayer(0, tiles, 0, 0)
@@ -64,12 +68,12 @@ export default class Game extends Phaser.Scene {
     this.createPlayerAnimations()
 
     // create the boxes, then map through all of the boxes to center each box sprite in the middle of the tile
-    this.boxes = this.layer
+    this.blueBoxes = this.layer
       .createFromTiles(8, 0, { key: 'tiles', frame: 8 })
       .map(box => box.setOrigin(0))
   }
 
-  // the game loop, repeatedly runs during run-time
+  // a Phaser method to construct the game loop, this method recursively runs during run-time
   update() {
     // check for no cursor keys & return
     if (!this.cursors || !this.player) {
@@ -77,6 +81,8 @@ export default class Game extends Phaser.Scene {
     }
 
     // using the justDown method on each direction to prevent multiple presses in one movement
+    // without this the tweenMovement method will fire repeatedly whilst the player holds down the key
+    // justDown will record a snapshot of when the key is first depressed
     const justLeft = Phaser.Input.Keyboard.JustDown(this.cursors.left!)
     const justRight = Phaser.Input.Keyboard.JustDown(this.cursors.right!)
     const justUp = Phaser.Input.Keyboard.JustDown(this.cursors.up!)
@@ -123,13 +129,28 @@ export default class Game extends Phaser.Scene {
     }
   }
 
+  // is x, y location a target? this method checks the given location with a targets tileIndex
+  private hasTargetAt(x: number, y: number, tileIndex: number) {
+    // check that there is actually a layer
+    if (!this.layer) {
+      return false
+    }
+    // get the tile at the supplied x, y location
+    const tile = this.layer.getTileAtWorldXY(x, y)
+    // if no tile do nothing
+    if (!tile) {
+      return false
+    }
+    // return true or false
+    return tile.index === tileIndex
+  }
+
   // checks to see if there is a box in the direction of movement, if not just moves the player
   // if there is a box moves both the player and the box together
-  // passing a string to the onStart method to play the correct animation
   // param 1 & 2 : the adjusted x & y coordinates. These allow for the fact that the origin of the player is the center of the tile and not the 0, 0 corner
-  // we want to check that the coordinates that we are checking allow for the 32px (50% of tile dimension)
-  // param 3 : the tween value (amount that the tile will move in pixels)
-  // param 4 : a string representing the cursor key direction
+  // we want to check that the coordinates that we are checking allow for the +/- 32px (50% of tile dimensions (64px))
+  // param 3 : the tween direction and value (amount that the tile will move in pixels)
+  // param 4 : a string representing the cursor key direction and play the correct animation
   private tweenMovement(
     x: number,
     y: number,
@@ -150,10 +171,31 @@ export default class Game extends Phaser.Scene {
 
     // if there is a box present, move the box by the tweenValue
     if (box) {
+      const coveredTarget = this.hasTargetAt(
+        box.x,
+        box.y,
+        Colors.TARGET_COLOR_BLUE
+      )
+
+      if (coveredTarget) {
+        this.changeTargetCoveredCountForColor(Colors.TARGET_COLOR_BLUE, -1)
+      }
+
       this.tweens.add(
         Object.assign({}, tweenValue, {
           targets: box,
           duration: 500,
+          onComplete: () => {
+            const coveredTarget = this.hasTargetAt(
+              box.x,
+              box.y,
+              Colors.TARGET_COLOR_BLUE
+            )
+            if (coveredTarget) {
+              this.changeTargetCoveredCountForColor(Colors.TARGET_COLOR_BLUE, 1)
+            }
+            console.dir(this.targetsCoveredByColor)
+          },
         })
       )
     }
@@ -168,6 +210,13 @@ export default class Game extends Phaser.Scene {
         onStart: () => this.player?.anims.play(direction, true),
       })
     )
+  }
+
+  private changeTargetCoveredCountForColor(color: number, change: number) {
+    if (!(color in this.targetsCoveredByColor)) {
+      this.targetsCoveredByColor[color] = 0
+    }
+    this.targetsCoveredByColor[color] += change
   }
 
   // stop the animation
@@ -196,7 +245,7 @@ export default class Game extends Phaser.Scene {
 
   // this method loops through the boxes and returns the one box that has the x & y value specified
   private getBoxAt(x: number, y: number) {
-    return this.boxes.find(box => {
+    return this.blueBoxes.find(box => {
       const rect = box.getBounds()
       return rect.contains(x, y)
     })
