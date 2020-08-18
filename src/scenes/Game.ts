@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 
 export default class Game extends Phaser.Scene {
-  // method definitions
+  // variable & method definitions
   private player?: Phaser.GameObjects.Sprite
   private boxes: Phaser.GameObjects.Sprite[] = []
   private layer?: Phaser.Tilemaps.StaticTilemapLayer
@@ -11,6 +11,7 @@ export default class Game extends Phaser.Scene {
     super('game')
   }
 
+  // method run before the game has loaded
   preload() {
     // load the single spritesheet at run-time
     this.load.spritesheet('tiles', 'assets/sokoban_tilesheet.png', {
@@ -20,6 +21,7 @@ export default class Game extends Phaser.Scene {
     })
   }
 
+  // method run once after the game has loaded, but before the game starts
   create() {
     // define keyboard input
     this.cursors = this.input.keyboard.createCursorKeys()
@@ -44,6 +46,10 @@ export default class Game extends Phaser.Scene {
       tileHeight: 64,
     })
     const tiles = map.addTilesetImage('tiles')
+
+    // this.layer is now the spritesheet that has been divided into an array
+    // each 64x64 tile has an index in that array
+    // it is a single array, not 2d
     this.layer = map.createStaticLayer(0, tiles, 0, 0)
 
     // create the player sprite from the tile sheet
@@ -63,6 +69,7 @@ export default class Game extends Phaser.Scene {
       .map(box => box.setOrigin(0))
   }
 
+  // the game loop, repeatedly runs during run-time
   update() {
     // check for no cursor keys & return
     if (!this.cursors || !this.player) {
@@ -75,7 +82,7 @@ export default class Game extends Phaser.Scene {
     const justUp = Phaser.Input.Keyboard.JustDown(this.cursors.up!)
     const justDown = Phaser.Input.Keyboard.JustDown(this.cursors.down!)
 
-    // determine which key has been pressed and associate the correct animation for the pressed cursor key
+    // determine which key has been pressed and associate the correct animation
     if (justLeft) {
       const box = this.getBoxAt(this.player.x - 32, this.player.y + 32)
       const baseTween = {
