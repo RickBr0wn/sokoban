@@ -1,13 +1,14 @@
 import Phaser from 'phaser'
-import * as Colors from '../constants/Colors'
+import * as COLORS from '../constants/Colors'
+import { boxColorToTargetColor } from '../utils/colorUtils'
 
 export default class Game extends Phaser.Scene {
   // variable & method definitions
   private player?: Phaser.GameObjects.Sprite
-  private blueBoxes: Phaser.GameObjects.Sprite[] = []
   private layer?: Phaser.Tilemaps.StaticTilemapLayer
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
   private targetsCoveredByColor: { [key: number]: number } = {}
+  private boxesByColor: { [Key: number]: Phaser.GameObjects.Sprite[] } = {}
 
   // yup, the constructor
   constructor() {
@@ -35,9 +36,9 @@ export default class Game extends Phaser.Scene {
     const level = [
       [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
       [100, 0, 0, 0, 0, 0, 0, 0, 0, 100],
-      [100, 0, 0, 0, 0, 0, 0, 0, 0, 100],
-      [100, 0, 0, 0, 51, 8, 0, 52, 0, 100],
-      [100, 0, 0, 0, 0, 0, 0, 0, 0, 100],
+      [100, 0, 0, 0, 52, 0, 0, 0, 0, 100],
+      [100, 0, 6, 7, 8, 9, 10, 0, 0, 100],
+      [100, 0, 25, 38, 51, 64, 77, 0, 0, 100],
       [100, 0, 0, 0, 0, 0, 0, 0, 0, 100],
       [100, 0, 0, 0, 0, 0, 0, 0, 0, 100],
       [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
@@ -67,10 +68,7 @@ export default class Game extends Phaser.Scene {
     // use the extracted player animation method to create the animations
     this.createPlayerAnimations()
 
-    // create the boxes, then map through all of the boxes to center each box sprite in the middle of the tile
-    this.blueBoxes = this.layer
-      .createFromTiles(8, 0, { key: 'tiles', frame: 8 })
-      .map(box => box.setOrigin(0))
+    this.extractBoxes(this.layer)
   }
 
   // a Phaser method to construct the game loop, this method recursively runs during run-time
@@ -129,6 +127,29 @@ export default class Game extends Phaser.Scene {
     }
   }
 
+  // populates the this.boxesByColor object
+  // each key in the object represents a box color number which is taken from the COLORS constant
+  // each value in the object is the corresponding tiles extracted from the spritesheet
+  private extractBoxes(layer: Phaser.Tilemaps.StaticTilemapLayer) {
+    const boxColors = [
+      COLORS.BOX_COLOR_ORANGE,
+      COLORS.BOX_COLOR_RED,
+      COLORS.BOX_COLOR_BLUE,
+      COLORS.BOX_COLOR_GREEN,
+      COLORS.BOX_COLOR_GREY,
+    ]
+
+    boxColors.forEach(
+      color =>
+        (this.boxesByColor[color] = layer
+          .createFromTiles(color, 0, {
+            key: 'tiles',
+            frame: color,
+          })
+          .map(box => box.setOrigin(0)))
+    )
+  }
+
   // is x, y location a target? this method checks the given location with a targets tileIndex
   private hasTargetAt(x: number, y: number, tileIndex: number) {
     // check that there is actually a layer
@@ -167,18 +188,18 @@ export default class Game extends Phaser.Scene {
     }
 
     // look for a box at the x, y location
-    const box = this.getBoxAt(x, y)
+    const boxData = this.getBoxData(x, y)
 
     // if there is a box present, move the box by the tweenValue
-    if (box) {
-      const coveredTarget = this.hasTargetAt(
-        box.x,
-        box.y,
-        Colors.TARGET_COLOR_BLUE
-      )
+    if (boxData) {
+      const box = boxData.box
+      const boxColor = boxData.color
+      const targetColor = boxColorToTargetColor(boxColor)
+
+      const coveredTarget = this.hasTargetAt(box.x, box.y, targetColor)
 
       if (coveredTarget) {
-        this.changeTargetCoveredCountForColor(Colors.TARGET_COLOR_BLUE, -1)
+        this.changeTargetCoveredCountForColor(targetColor, -1)
       }
 
       this.tweens.add(
@@ -186,13 +207,9 @@ export default class Game extends Phaser.Scene {
           targets: box,
           duration: 500,
           onComplete: () => {
-            const coveredTarget = this.hasTargetAt(
-              box.x,
-              box.y,
-              Colors.TARGET_COLOR_BLUE
-            )
+            const coveredTarget = this.hasTargetAt(box.x, box.y, targetColor)
             if (coveredTarget) {
-              this.changeTargetCoveredCountForColor(Colors.TARGET_COLOR_BLUE, 1)
+              this.changeTargetCoveredCountForColor(targetColor, 1)
             }
             console.dir(this.targetsCoveredByColor)
           },
@@ -244,11 +261,20 @@ export default class Game extends Phaser.Scene {
   }
 
   // this method loops through the boxes and returns the one box that has the x & y value specified
-  private getBoxAt(x: number, y: number) {
-    return this.blueBoxes.find(box => {
-      const rect = box.getBounds()
-      return rect.contains(x, y)
-    })
+  private getBoxData(x: number, y: number) {
+    const keys = Object.keys(this.boxesByColor)
+    for (let i = 0; i < keys.length; i++) {
+      const color = keys[i]
+      const box = this.boxesByColor[color].find(box => {
+        const rect = box.getBounds()
+        return rect.contains(x, y)
+      })
+      if (!box) {
+        continue
+      }
+      return { box, color: parseInt(color) }
+    }
+    return undefined
   }
 
   // create the animations
