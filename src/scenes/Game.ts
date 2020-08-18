@@ -47,7 +47,7 @@ export default class Game extends Phaser.Scene {
     })
     const tiles = map.addTilesetImage('tiles')
 
-    // this.layer is now the spritesheet that has been divided into an array
+    // this.layer is now the spritesheet which has been divided into an array
     // each 64x64 tile has an index in that array
     // it is a single array, not 2d
     this.layer = map.createStaticLayer(0, tiles, 0, 0)
