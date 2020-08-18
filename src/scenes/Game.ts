@@ -82,7 +82,7 @@ export default class Game extends Phaser.Scene {
     const justUp = Phaser.Input.Keyboard.JustDown(this.cursors.up!)
     const justDown = Phaser.Input.Keyboard.JustDown(this.cursors.down!)
 
-    // determine which key has been pressed and associate the correct animation for the pressed cursor key
+    // determine which key has been pressed and associate the correct animation
     if (justLeft) {
       const box = this.getBoxAt(this.player.x - 32, this.player.y + 32)
       const baseTween = {
