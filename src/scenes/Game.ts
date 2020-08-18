@@ -84,54 +84,83 @@ export default class Game extends Phaser.Scene {
 
     // determine which key has been pressed and associate the correct animation
     if (justLeft) {
-      const box = this.getBoxAt(this.player.x - 32, this.player.y + 32)
-      const baseTween = {
-        x: '-=64',
-      }
-      this.tweenMovement(box, baseTween, 'left')
+      // see function definition for explanation
+      this.tweenMovement(
+        this.player.x - 32,
+        this.player.y + 32,
+        {
+          x: '-=64',
+        },
+        'left'
+      )
     } else if (justRight) {
-      const box = this.getBoxAt(this.player.x + 96, this.player.y + 32)
-      const baseTween = {
-        x: '+=64',
-      }
-      this.tweenMovement(box, baseTween, 'right')
+      this.tweenMovement(
+        this.player.x + 96,
+        this.player.y + 32,
+        {
+          x: '+=64',
+        },
+        'right'
+      )
     } else if (justUp) {
-      this.player?.anims.play('up', true)
-      const box = this.getBoxAt(this.player.x + 32, this.player.y - 32)
-      const baseTween = {
-        y: '-=64',
-      }
-      this.tweenMovement(box, baseTween, 'up')
+      this.tweenMovement(
+        this.player.x + 32,
+        this.player.y - 32,
+        {
+          y: '-=64',
+        },
+        'up'
+      )
     } else if (justDown) {
-      this.player?.anims.play('down', true)
-      const box = this.getBoxAt(this.player.x + 32, this.player.y + 96)
-      const baseTween = {
-        y: '+=64',
-      }
-      this.tweenMovement(box, baseTween, 'down')
+      this.tweenMovement(
+        this.player.x + 32,
+        this.player.y + 96,
+        {
+          y: '+=64',
+        },
+        'down'
+      )
     }
   }
 
   // checks to see if there is a box in the direction of movement, if not just moves the player
   // if there is a box moves both the player and the box together
   // passing a string to the onStart method to play the correct animation
+  // param 1 & 2 : the adjusted x & y coordinates. These allow for the fact that the origin of the player is the center of the tile and not the 0, 0 corner
+  // we want to check that the coordinates that we are checking allow for the 32px (50% of tile dimension)
+  // param 3 : the tween value (amount that the tile will move in pixels)
+  // param 4 : a string representing the cursor key direction
   private tweenMovement(
-    box: Phaser.GameObjects.Sprite | undefined,
-    baseTween: any,
+    x: number,
+    y: number,
+    tweenValue: any,
     direction: string
   ) {
+    // checks to see if player is already moving, and if so does nothing
+    if (this.tweens.isTweening(this.player!)) {
+      return
+    }
+    // checks for walls, and if found do nothing (no movement)
+    if (this.hasWallAt(x, y)) {
+      return
+    }
+
+    // look for a box at the x, y location
+    const box = this.getBoxAt(x, y)
+
+    // if there is a box present, move the box by the tweenValue
     if (box) {
       this.tweens.add(
-        Object.assign({}, baseTween, {
+        Object.assign({}, tweenValue, {
           targets: box,
           duration: 500,
         })
       )
-    } else {
     }
 
+    // move the player according to the tweenValue, and play the correct animation based on direction value
     this.tweens.add(
-      Object.assign({}, baseTween, {
+      Object.assign({}, tweenValue, {
         targets: this.player,
         duration: 500,
         onComplete: this.stopPlayerAnimation,
@@ -153,7 +182,17 @@ export default class Game extends Phaser.Scene {
     }
   }
 
-  private getWallAt(x: number, y: number) {}
+  // returns a boolean on whether a defined x & y coordinate has a wall tile (index 100)
+  private hasWallAt(x: number, y: number) {
+    if (!this.layer) {
+      return false
+    }
+    const tile = this.layer.getTileAtWorldXY(x, y)
+    if (!tile) {
+      return false
+    }
+    return tile.index === 100
+  }
 
   // this method loops through the boxes and returns the one box that has the x & y value specified
   private getBoxAt(x: number, y: number) {
@@ -191,28 +230,40 @@ export default class Game extends Phaser.Scene {
 
     this.anims.create({
       key: 'left',
-      frames: this.anims.generateFrameNumbers('tiles', { start: 81, end: 83 }),
+      frames: this.anims.generateFrameNumbers('tiles', {
+        start: 81,
+        end: 83,
+      }),
       frameRate: 10,
       repeat: -1,
     })
 
     this.anims.create({
       key: 'right',
-      frames: this.anims.generateFrameNumbers('tiles', { start: 78, end: 80 }),
+      frames: this.anims.generateFrameNumbers('tiles', {
+        start: 78,
+        end: 80,
+      }),
       frameRate: 10,
       repeat: -1,
     })
 
     this.anims.create({
       key: 'up',
-      frames: this.anims.generateFrameNumbers('tiles', { start: 55, end: 57 }),
+      frames: this.anims.generateFrameNumbers('tiles', {
+        start: 55,
+        end: 57,
+      }),
       frameRate: 10,
       repeat: -1,
     })
 
     this.anims.create({
       key: 'down',
-      frames: this.anims.generateFrameNumbers('tiles', { start: 52, end: 54 }),
+      frames: this.anims.generateFrameNumbers('tiles', {
+        start: 52,
+        end: 54,
+      }),
       frameRate: 10,
       repeat: -1,
     })
