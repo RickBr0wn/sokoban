@@ -57,7 +57,7 @@ export default class Game extends Phaser.Scene {
     // it is a single array, not 2d
     this.layer = map.createStaticLayer(0, tiles, 0, 0)
 
-    // create the player sprite from the tile sheet
+    // this.player is now the sprite from the tile sheet
     this.player = this.layer
       .createFromTiles(52, 0, { key: 'tiles', frame: 52 })
       .pop()
@@ -73,7 +73,7 @@ export default class Game extends Phaser.Scene {
 
   // a Phaser method to construct the game loop, this method recursively runs during run-time
   update() {
-    // check for no cursor keys & return
+    // check for no cursor keys or player & if so does nothing
     if (!this.cursors || !this.player) {
       return
     }
@@ -90,6 +90,7 @@ export default class Game extends Phaser.Scene {
     if (justLeft) {
       // see function definition for explanation
       this.tweenMovement(
+        // allows for the +/- 32px (50% of tile dimensions (64px))
         this.player.x - 32,
         this.player.y + 32,
         {
